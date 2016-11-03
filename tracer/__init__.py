@@ -12,6 +12,11 @@ class Video:
         self.reader = imageio.get_reader(filename, format='FFMPEG', mode='I')
         self.metadata = self.reader.get_meta_data()
 
+    def __del__(self):
+        self.reader.close()
+        super().__del__()
+        # del self.reader
+
     def __str__(self):
         s = "Video:\n"
         template = "\t{item:14}: {text}\n"
@@ -68,23 +73,7 @@ if __name__ == '__main__':
     print(f.gray)
     # del f
 
-    hist, bin_centers = exposure.histogram(f.gray)
-
-    img = f.gray
-    # img_eq = exposure.equalize_hist(img)
-    img_eq = exposure.equalize_adapthist(img)
-
-    fig, axs = pylab.subplots(2, 2)
-    axs[0, 0].imshow(img, cmap='viridis')
-
-    hist, bin_centers = exposure.histogram(img)
-    axs[0, 1].plot(hist)
-
-    axs[1, 0].imshow(img_eq, cmap='viridis')
-
-    hist, bin_centers = exposure.histogram(img_eq)
-    axs[1, 1].plot(hist)
-
-    pylab.show()
-
-    del video  # without this it hangs randomly on exit
+    # print(video.reader)
+    # video.reader.close()
+    # del video.reader
+    # del video  # without this it hangs randomly on exit
