@@ -49,10 +49,10 @@ for index, image in enumerate(tqdm(video_reader)):
     imshow(fg_mask)
 
     # blobs = feature.blob_dog(image, max_sigma=30)
-    blobs = ocvu.find_biggest_contours(fg_mask)
+    blobs = ocvu.find_biggest_contours(fg_mask, 10)
     print(blobs)
     for blob in blobs:
-        print(blob.centroid, blob.bounding_box)
+        print(blob.centroid, blob.area)
     break
 
     if len(blobs) == N:

@@ -1,4 +1,6 @@
 import os
+import cv2
+import ocvu
 import imageio
 from joblib import Parallel, delayed
 import matplotlib.pylab as pl
@@ -38,17 +40,19 @@ print(video_reader, video_len)
 df = pd.DataFrame(index=range(len(video_reader)))
 
 
-def count_blobs(image):
-    image = color.rgb2gray(image)
-    image = 1 - image  # replaces `invert` above
-    blobs = feature.blob_dog(image, max_sigma=30)
-    return len(blobs)
+def count_blobs(image, area_min=2000, area_max=3000):
+    image_gray = image[:, :, 1]
+    _, fg_mask = cv2.threshold(image_gray, 220, 255, cv2.THRESH_BINARY_INV)
+    blobs = ocvu.find_biggest_contours(fg_mask, n=10)  # TODO use better method
+    blobs = [blob for blob in blobs if area_min < blob.area < area_max]
+    # df.ix[-1, 'nblobs'] = len(blobs)
 
 
-Parallel(n_jobs=8, verbose=1, backend='threading')(
+Parallel(n_jobs=8, verbose=4)(
     delayed(count_blobs)(image) for image in video_reader)
 
 print(df)
+df.to_csv('nblobs.csv')
 
 # nblobs = []
 # for index, image in enumerate(tqdm(video_reader)):
