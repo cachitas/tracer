@@ -16,13 +16,14 @@ class Video:
         super().__del__()
         # del self.reader
 
-    def __str__(self):
-        s = "Video:\n"
-        template = "\t{item:14}: {text}\n"
-        s += template.format(item="source", text=self.filename)
-        for key, value in self.metadata.items():
-            s += template.format(item=key, text=value)
-        return s
+    # def __str__(self):
+    #     s = "Video:\n"
+    #     template = "\t{item:14}: {text}\n"
+    #     s += template.format(item="source", text=self.filename)
+    #     for key, value in self.metadata.items():
+    #         s += template.format(item=key, text=value)
+    #     s = "Video"
+    #     return s
 
     @property
     def fps(self):
