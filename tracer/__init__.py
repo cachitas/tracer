@@ -1,5 +1,7 @@
+import logging
 import os
 
+import imageio
 import numpy as np
 import pandas as pd
 import pylab as pl
@@ -8,17 +10,29 @@ import tracer
 
 
 if __name__ == '__main__':
-    filename = os.path.join('sample_videos', 'single.avi')
+
+    logging.basicConfig(level='DEBUG')
+
+    filename = os.path.join('sample_videos', 'couple.avi')
+    video = tracer.Video(filename)
+
+    bg = tracer.generate_background_model(video)
+    print(bg)
+
+    imageio.imwrite(filename[:-4], bg, format='BMP')
+
+    video.close()
+
     # video, fps = tracer.load_video(filename)
     # print(video.shape)
     # print(video[-1])
 
     # np.save(filename[:-4], video, allow_pickle=False, fix_imports=False)
 
-    print("Loading saved video")
-    video = np.load(filename[:-4] + '.npy')
-    print(video.shape)
-    print(video[-1])
+    # print("Loading saved video")
+    # video = np.load(filename[:-4] + '.npy')
+    # print(video.shape)
+    # print(video[-1])
 
     # df = pd.read_csv('nblobs.csv', index_col=0)
     # print(df.head())
