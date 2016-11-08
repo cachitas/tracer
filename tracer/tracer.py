@@ -23,6 +23,8 @@ class Video:
         self.reader = imageio.get_reader(filepath, format='FFMPEG', mode='I')
         self.metadata = self.reader.get_meta_data()
 
+        self.background_model = None
+
     @property
     def fps(self):
         """Returns the frame rate as a float"""
@@ -42,15 +44,52 @@ class Video:
         """Close the reader object."""
         self.reader.close()
 
+    def generate_background_model(self, step=None, n=10, mse_min=50):
+        """Generates the background model of the video using the median.
+        Only sufficiently different frames are considered, using the
+        mean squared error method.
+        Parameters:
+            step: Step to iterate through the video. Default is video FPS rate.
+            n: Number of frames to use for the model.
+            mse_min: The minimum error at wich the frame is selected. The
+                lower the error, the more *similar* the two images are.
+        """
+        log.info("Generating the background model")
+
+        step = step or int(self.fps)
+
+        log.debug(
+            "Selecting frames (step={}, n={}, mse_min={})".format(
+                step, n, mse_min)
+        )
+
+        progress_bar = tqdm(total=n)
+        index = 0
+        selected_frames = [self.read(index)]
+        progress_bar.update(1)
+        while len(selected_frames) < n:
+            index += step
+            image = self.read(index)
+            if _mean_squared_error(image, selected_frames[-1]) > mse_min:
+                selected_frames.append(image)
+                progress_bar.update(1)
+        progress_bar.close()
+
+        log.debug(
+            "Generating the background model using {} frames".format(
+                len(selected_frames))
+        )
+
+        self.background_model = np.median(
+            np.dstack(selected_frames), axis=2).astype(np.uint8)
+
     def read(self, index):
         """Read a video frame in grayscale.
         The frame number is stored in the `.meta.index` attribute (imageio).
         """
-        image = self.frames[index]
-        if np.count_nonzero(image) == 0:
-            image = self.reader.get_data(index)
-            image = image[:, :, 1]
-            image.meta.index = index
+        image = self.reader.get_data(index)
+        image = image[:, :, 1]
+        image.meta.index = index
         return image
 
 
@@ -66,47 +105,6 @@ def _mean_squared_error(img1, img2):
     return err
 
 
-def generate_background_model(step=None, end=None, mse_min=50):
-    """Generates a background model using the median.
-    Only sufficiently different frames are considered, using the
-    mean squared error method.
-    Parameters:
-        step: Step to iterate through the video. Default is video FPS rate.
-        end: Last frame to consider. Default is 2/3 of video length.
-        mse_min: The minimum error at wich the frame is selected. The
-            lower the error, the more *similar* the two images are.
-    """
-    log.info("Generating background model")
-
-    step = step or int(video.fps)
-    end = end or int(video.nframes * (2 / 3))
-
-    log.info(
-        "Selecting frames (step={}, end={}, mse_min={})".format(
-            step, end, mse_min)
-    )
-
-    first_frame = video.read(0)
-    selected_frames = [first_frame]
-
-    for i in tqdm(range(1, end, step)):
-        frame = video.read(i)
-        if _mean_squared_error(frame, selected_frames[-1]) < mse_min:
-            continue
-        else:
-            selected_frames.append(frame)
-
-    log.info(
-        "Generating the background model using {} frames".format(
-            len(selected_frames))
-    )
-
-    bgmodel = np.median(
-        np.dstack(selected_frames), axis=2).astype(np.uint8)
-
-    return bgmodel
-
-
 def prepare_output_folder():
     log.info("Preparing the output folder")
 
@@ -115,5 +113,7 @@ def track(video_filepath):
     log.info("Tracking '%s'", video_filepath)
     video = Video(video_filepath)
     prepare_output_folder()
-    generate_background_model()
+    print(video)
+    video.generate_background_model()
+    imageio.imwrite(video_filepath[:-4], video.background_model, format='BMP')
     video.close()
