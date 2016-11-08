@@ -1,19 +1,27 @@
 import logging
+import os
 
 import imageio
 import numpy as np
+from tqdm import tqdm, trange
+
+# from tools import LoggingHandler
 
 
 log = logging.getLogger(__name__)
+# log.addHandler(LoggingHandler())
+
+video = None
+output_folder = None
+background_model = None
 
 
 class Video:
 
-    def __init__(self, filename):
-        self.filename = filename
-        self.reader = imageio.get_reader(filename, format='FFMPEG', mode='I')
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.reader = imageio.get_reader(filepath, format='FFMPEG', mode='I')
         self.metadata = self.reader.get_meta_data()
-        self.frames = np.zeros(shape=(self.nframes, *self.size), dtype=np.uint8)
 
     @property
     def fps(self):
@@ -36,7 +44,6 @@ class Video:
 
     def read(self, index):
         """Read a video frame in grayscale.
-        The obtained image is cached and returned.
         The frame number is stored in the `.meta.index` attribute (imageio).
         """
         image = self.frames[index]
@@ -44,28 +51,22 @@ class Video:
             image = self.reader.get_data(index)
             image = image[:, :, 1]
             image.meta.index = index
-            self.frames[index] = image
         return image
 
 
-def load_video(filename, nframes=None):
-    with imageio.get_reader(uri=filename, format='FFMPEG') as reader:
-        metadata = reader.get_meta_data()
-        width, height = metadata['source_size']
-        fps = metadata['fps']
-        nframes = min([nframes or metadata['nframes'], metadata['nframes']])
-        video = np.zeros(shape=(nframes, width, height), dtype=np.uint8)
-        print("Loading video with shape", video.shape)
-        for index, image in enumerate(reader):
-            image = image[:, :, 1]
-            try:
-                video[index] = image
-            except IndexError:
-                break
-        return video, fps
+def _mean_squared_error(img1, img2):
+    """
+    The **Mean Squared Error** between the two images is the sum of the
+    squared difference between the two images. The lower the error, the
+    more *similar* the two images are.
+    **NOTE:** the two images must have the same dimension.
+    """
+    err = np.sum((img1.astype('float') - img2.astype('float')) ** 2)
+    err /= float(img1.shape[0] * img1.shape[1])
+    return err
 
 
-def generate_background_model(video, step=None, end=None, mse_min=50):
+def generate_background_model(step=None, end=None, mse_min=50):
     """Generates a background model using the median.
     Only sufficiently different frames are considered, using the
     mean squared error method.
@@ -75,6 +76,7 @@ def generate_background_model(video, step=None, end=None, mse_min=50):
         mse_min: The minimum error at wich the frame is selected. The
             lower the error, the more *similar* the two images are.
     """
+    log.info("Generating background model")
 
     step = step or int(video.fps)
     end = end or int(video.nframes * (2 / 3))
@@ -87,10 +89,9 @@ def generate_background_model(video, step=None, end=None, mse_min=50):
     first_frame = video.read(0)
     selected_frames = [first_frame]
 
-    for i in range(1, end, step):
+    for i in tqdm(range(1, end, step)):
         frame = video.read(i)
-        mse = _mean_squared_error(frame, selected_frames[-1])
-        if mse < mse_min:
+        if _mean_squared_error(frame, selected_frames[-1]) < mse_min:
             continue
         else:
             selected_frames.append(frame)
@@ -106,13 +107,13 @@ def generate_background_model(video, step=None, end=None, mse_min=50):
     return bgmodel
 
 
-def _mean_squared_error(img1, img2):
-    """
-    The **Mean Squared Error** between the two images is the sum of the
-    squared difference between the two images. The lower the error, the
-    more *similar* the two images are.
-    **NOTE:** the two images must have the same dimension.
-    """
-    err = np.sum((img1.astype('float') - img2.astype('float')) ** 2)
-    err /= float(img1.shape[0] * img1.shape[1])
-    return err
+def prepare_output_folder():
+    log.info("Preparing the output folder")
+
+
+def track(video_filepath):
+    log.info("Tracking '%s'", video_filepath)
+    video = Video(video_filepath)
+    prepare_output_folder()
+    generate_background_model()
+    video.close()
