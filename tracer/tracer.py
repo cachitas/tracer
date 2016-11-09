@@ -66,13 +66,13 @@ class Video:
         progress_bar = tqdm(total=n)
         index = 0
         selected_frames = [self.read(index)]
-        progress_bar.update(1)
+        progress_bar.update()
         while len(selected_frames) < n:
             index += step
             image = self.read(index)
             if _mean_squared_error(image, selected_frames[-1]) > mse_min:
                 selected_frames.append(image)
-                progress_bar.update(1)
+                progress_bar.update()
         progress_bar.close()
 
         log.debug(
