@@ -1,19 +1,13 @@
 import logging
-import os
 
 import imageio
 import numpy as np
-from tqdm import tqdm, trange
+from tqdm import tqdm
 
-# from tools import LoggingHandler
+from tools import _mean_squared_error
 
 
 log = logging.getLogger(__name__)
-# log.addHandler(LoggingHandler())
-
-video = None
-output_folder = None
-background_model = None
 
 
 class Video:
@@ -44,7 +38,7 @@ class Video:
         """Close the reader object."""
         self.reader.close()
 
-    def generate_background_model(self, step=None, n=10, mse_min=50):
+    def generate_background_model(self, step=None, n=6, mse_min=50):
         """Generates the background model of the video using the median.
         Only sufficiently different frames are considered, using the
         mean squared error method.
@@ -91,29 +85,3 @@ class Video:
         image = image[:, :, 1]
         image.meta.index = index
         return image
-
-
-def _mean_squared_error(img1, img2):
-    """
-    The **Mean Squared Error** between the two images is the sum of the
-    squared difference between the two images. The lower the error, the
-    more *similar* the two images are.
-    **NOTE:** the two images must have the same dimension.
-    """
-    err = np.sum((img1.astype('float') - img2.astype('float')) ** 2)
-    err /= float(img1.shape[0] * img1.shape[1])
-    return err
-
-
-def prepare_output_folder():
-    log.info("Preparing the output folder")
-
-
-def track(video_filepath):
-    log.info("Tracking '%s'", video_filepath)
-    video = Video(video_filepath)
-    prepare_output_folder()
-    print(video)
-    video.generate_background_model()
-    imageio.imwrite(video_filepath[:-4], video.background_model, format='BMP')
-    video.close()
