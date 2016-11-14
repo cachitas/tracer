@@ -4,7 +4,7 @@ import imageio
 import numpy as np
 from tqdm import tqdm
 
-from tools import _mean_squared_error
+from .tools import _mean_squared_error
 
 
 log = logging.getLogger(__name__)

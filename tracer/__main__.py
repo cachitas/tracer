@@ -1,7 +1,7 @@
 import argparse
 import logging
 
-from tracker import Tracker
+from .tracker import Tracker
 
 logging.basicConfig(level='DEBUG')
 
