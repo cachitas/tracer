@@ -2,9 +2,12 @@ import logging
 import os
 import yaml
 
+import imageio
+import numpy as np
 import pandas as pd
 
 from .video import Video
+from .tools import mean_squared_error
 
 
 logger = logging.getLogger(__name__)
@@ -18,6 +21,8 @@ class Tracker:
         self.number_of_flies = 0
         self.output_folder = ''
 
+        self.background_model = None
+
     def configure(self, config_file=None, **config):
         """Configure the Tracker using a YAML file or a dictionary."""
         logger.info("Configuring tracker")
@@ -30,14 +35,72 @@ class Tracker:
             logger.debug("Setting %s to %s", key, value)
             self.__setattr__(key, value)
 
+    def count_blobs_per_frame(self):
+        logger.info("Counting blobs")
+
+    def estimate_thresholds(self):
+        logger.info("Estimating flies thresholds")
+
+    def generate_background_model(self, step=None, n=6, mse_min=50):
+        """Generates the background model of the video using the median.
+        Only sufficiently different frames are considered, using the
+        mean squared error method.
+        Parameters:
+            step: Step to iterate through the video. Default is video FPS rate.
+            n: Number of frames to use for the model.
+            mse_min: The minimum error at wich the frame is selected. The
+                lower the error, the more *similar* the two images are.
+        """
+        logger.info("Generating the background model")
+
+        step = step or int(self.video.fps)
+
+        logger.info(
+            "Selecting frames (step={}, n={}, mse_min={})".format(
+                step, n, mse_min)
+        )
+
+        index = 0
+        logger.debug("Using frame %d", index)
+        selected_frames = [self.video.read(index)]
+        while len(selected_frames) < n:
+            index += step
+            image = self.video.read(index)
+            if mean_squared_error(image, selected_frames[-1]) > mse_min:
+                selected_frames.append(image)
+                logger.debug("Using frame %d", index)
+
+        logger.info(
+            "Generating the background model using {} frames".format(
+                len(selected_frames))
+        )
+
+        self.background_model = np.median(
+            np.dstack(selected_frames), axis=2).astype(np.uint8)
+
     def run(self):
         """Run the tracker in its current state."""
-        logger.info("Running")
+
+        logger.info("Running...")
+
         self.prepare_output_folder()
 
         self.video = Video(self.video_filepath)
 
-        self.generate_background_model()
+        background_filename = os.path.join(
+            self.output_folder, "background.bmp")
+        try:
+            logger.info("Looking for background model")
+            self.background_model = imageio.imread(background_filename)
+        except OSError:
+            logger.info("Background model not found. Generating new...")
+            self.generate_background_model()
+            logger.info("Saving background model as '%s'", background_filename)
+            imageio.imwrite(
+                background_filename, self.background_model, format='BMP')
+        else:
+            logger.info("Background model found '%s'", background_filename)
+
         self.count_blobs_per_frame()
         self.estimate_thresholds()
 
@@ -55,9 +118,7 @@ class Tracker:
         logger.info("Preparing the output folder")
 
         if os.path.exists(self.output_folder):
-            msg = "Output folder exists"
-            logging.critical(msg)
-            raise SystemExit("Tracker aborted: %s" % msg)
+            logging.info("Output folder already exists")
         else:
             os.mkdir(self.output_folder)
             logger.info("Output folder created")

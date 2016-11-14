@@ -5,6 +5,8 @@ import numpy as np
 import pylab as pl
 from tqdm import tqdm
 
+logger = logging.getLogger(__name__)
+
 
 class LoggingHandler(logging.Handler):
     def __init__(self, level=logging.NOTSET):
@@ -34,7 +36,7 @@ def imshow(image, title=""):
     pl.show()
 
 
-def _mean_squared_error(img1, img2):
+def mean_squared_error(img1, img2):
     """
     The **Mean Squared Error** between the two images is the sum of the
     squared difference between the two images. The lower the error, the
