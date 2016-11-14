@@ -2,9 +2,7 @@ import logging
 import os
 import yaml
 
-import imageio
-import numpy as np
-from tqdm import tqdm, trange
+import pandas as pd
 
 from .video import Video
 
@@ -36,8 +34,15 @@ class Tracker:
         """Run the tracker in its current state."""
         logger.info("Running")
         self.prepare_output_folder()
+
         self.video = Video(self.video_filepath)
-        print(self.video)
+
+        self.generate_background_model()
+        self.count_blobs_per_frame()
+        self.estimate_thresholds()
+
+        self.s = pd.Series(index=range(self.video.nframes), name='n')
+
         self.video.close()
 
     def prepare_output_folder(self):
