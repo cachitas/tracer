@@ -6,6 +6,9 @@ import imageio
 import numpy as np
 import pandas as pd
 
+import cv2
+import ocvu
+
 from .video import Video
 from .tools import mean_squared_error
 
@@ -35,8 +38,17 @@ class Tracker:
             logger.debug("Setting %s to %s", key, value)
             self.__setattr__(key, value)
 
-    def count_blobs_per_frame(self):
+    def count_blobs_per_frame(self, area_min=2000, area_max=3000):
         logger.info("Counting blobs")
+        # TODO
+        s = pd.Series(index=range(self.video.nframes), name='n')
+        for index in range(self.video.nframes)[:50]:
+            image = self.video.read(index)
+            _, fg_mask = cv2.threshold(image, 220, 255, cv2.THRESH_BINARY_INV)
+            blobs = ocvu.find_biggest_contours(fg_mask, n=10)  # TODO use better method
+            blobs = [blob for blob in blobs if area_min < blob.area < area_max]
+            s.loc[index] = len(blobs)
+        print(s)
 
     def estimate_thresholds(self):
         logger.info("Estimating flies thresholds")
@@ -103,8 +115,6 @@ class Tracker:
 
         self.count_blobs_per_frame()
         self.estimate_thresholds()
-
-        self.s = pd.Series(index=range(self.video.nframes), name='n')
 
         self.video.close()
 
