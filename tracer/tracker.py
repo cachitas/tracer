@@ -46,9 +46,10 @@ class Tracker:
             image = self.video.read(index)
             _, fg_mask = cv2.threshold(image, 220, 255, cv2.THRESH_BINARY_INV)
             blobs = ocvu.find_biggest_contours(fg_mask, n=10)  # TODO use better method
-            blobs = [blob for blob in blobs if area_min < blob.area < area_max]
-            s.loc[index] = len(blobs)
-        print(s)
+            # blobs = [blob for blob in blobs if area_min < blob.area < area_max]
+            blobs = [blob.area for blob in blobs]
+            s.loc[index] = str(blobs)
+        print(s[:50])
 
     def estimate_thresholds(self):
         logger.info("Estimating flies thresholds")
