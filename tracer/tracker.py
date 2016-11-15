@@ -44,8 +44,9 @@ class Tracker:
         s = pd.Series(index=range(self.video.nframes), name='n')
         for index in range(self.video.nframes)[:50]:
             image = self.video.read(index)
+            image = image - self.background_model
             _, fg_mask = cv2.threshold(image, 220, 255, cv2.THRESH_BINARY_INV)
-            blobs = ocvu.find_biggest_contours(fg_mask, n=10)  # TODO use better method
+            blobs = ocvu.find_biggest_contours(fg_mask, n=self.number_of_flies)
             # blobs = [blob for blob in blobs if area_min < blob.area < area_max]
             blobs = [blob.area for blob in blobs]
             s.loc[index] = str(blobs)
@@ -99,6 +100,12 @@ class Tracker:
         self.prepare_output_folder()
 
         self.video = Video(self.video_filepath)
+
+        # self.flies = pd.Panel(
+        #     items=range(self.number_of_flies),
+        #     major_axis=range(self.video.nframes),
+        #     minor_axis=['x', 'y', 'a'],
+        # )
 
         background_filename = os.path.join(
             self.output_folder, "background.bmp")

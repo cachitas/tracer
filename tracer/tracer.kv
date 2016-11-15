@@ -1,0 +1,35 @@
+BoxLayout:
+    orientation: 'vertical'
+
+    index: slider.value
+    img_original: img_original
+    img_foreground: img_foreground
+
+    BoxLayout:
+        spacing: '2dp'
+
+        Image:
+            id: img_original
+
+        Image:
+            id: img_foreground
+
+    BoxLayout:
+        spacing: '6dp'
+        size_hint_y: None
+
+        Button:
+            size_hint_x: None
+            width: '200dp'
+            text: "Show Background Model"
+
+        Slider
+            id: slider
+            step: 1
+            on_value: app.set_image(int(self.value))
+
+        Label:
+            size_hint_x: None
+            width: '140dp'
+            text: str(root.index)
+
