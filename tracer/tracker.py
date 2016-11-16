@@ -5,12 +5,16 @@ import yaml
 import imageio
 import numpy as np
 import pandas as pd
+import pylab as pl
 
 import cv2
 import ocvu
 
 from .video import Video
-from .tools import mean_squared_error
+from . import tools
+# from .tools import denoise
+# from .tools import imshow
+# from .tools import mean_squared_error
 
 
 logger = logging.getLogger(__name__)
@@ -38,22 +42,45 @@ class Tracker:
             logger.debug("Setting %s to %s", key, value)
             self.__setattr__(key, value)
 
-    def count_blobs_per_frame(self, area_min=2000, area_max=3000):
+    def count_blobs_per_frame(self):
         logger.info("Counting blobs")
+
         # TODO
-        s = pd.Series(index=range(self.video.nframes), name='n')
-        for index in range(self.video.nframes)[:50]:
+
+        result_filepath = os.path.join(self.output_folder, "blob_count.h5")
+        try:
+            s = pd.read_hdf(result_filepath)
+        except OSError:
+            s = pd.Series(0, index=range(self.video.nframes), name='n')
+        else:
+            return
+
+        for index in range(self.video.nframes):
+            if not index % 1000:
+                logger.info("Processing frame %d", index)
+
             image = self.video.read(index)
-            image = image - self.background_model
-            _, fg_mask = cv2.threshold(image, 220, 255, cv2.THRESH_BINARY_INV)
-            blobs = ocvu.find_biggest_contours(fg_mask, n=self.number_of_flies)
-            # blobs = [blob for blob in blobs if area_min < blob.area < area_max]
-            blobs = [blob.area for blob in blobs]
-            s.loc[index] = str(blobs)
-        print(s[:50])
+            foreground = image - self.background_model
+            _, foreground_mask = cv2.threshold(foreground, 50, 255, cv2.THRESH_BINARY)
+            foreground_mask = tools.denoise(foreground_mask)
+
+            contours = tools.find_biggest_contours(
+                foreground_mask, n=self.number_of_flies, min_area=1000)
+
+            s.loc[index] = len(contours)
+
+        # else:
+        #     # Save last images
+        #     filename = os.path.join(self.output_folder, "%d.bmp" % index)
+        #     tools.save(image, filename)
+        #     filename = os.path.join(self.output_folder, "fg_%d.bmp" % index)
+        #     tools.save(foreground_mask, filename)
+
+        s.to_hdf(result_filepath, key='n')
 
     def estimate_thresholds(self):
         logger.info("Estimating flies thresholds")
+        # TODO
 
     def generate_background_model(self, step=None, n=6, mse_min=50):
         """Generates the background model of the video using the median.
@@ -80,7 +107,7 @@ class Tracker:
         while len(selected_frames) < n:
             index += step
             image = self.video.read(index)
-            if mean_squared_error(image, selected_frames[-1]) > mse_min:
+            if tools.mean_squared_error(image, selected_frames[-1]) > mse_min:
                 selected_frames.append(image)
                 logger.debug("Using frame %d", index)
 
@@ -136,22 +163,7 @@ class Tracker:
         logger.info("Preparing the output folder")
 
         if os.path.exists(self.output_folder):
-            logging.info("Output folder already exists")
+            logger.info("Output folder already exists")
         else:
             os.mkdir(self.output_folder)
             logger.info("Output folder created")
-
-
-
-# def prepare_output_folder():
-#     log.info("Preparing the output folder")
-
-
-# def track():
-#     log.info("Tracking '%s'", video_filepath)
-#     video = Video(video_filepath)
-#     prepare_output_folder()
-#     print(video)
-#     video.generate_background_model()
-#     imageio.imwrite(video_filepath[:-4], video.background_model, format='BMP')
-#     video.close()
