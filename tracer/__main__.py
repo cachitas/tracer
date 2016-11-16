@@ -12,5 +12,5 @@ logging.basicConfig(level='DEBUG')
 # args = parser.parse_args()
 
 tracker = Tracker()
-tracker.configure('config_sample_2.yml')
+tracker.configure('config_sample_1.yml')
 tracker.run()

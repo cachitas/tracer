@@ -2,16 +2,16 @@ BoxLayout:
     orientation: 'vertical'
 
     index: slider.value
-    img_original: img_original
-    img_foreground: img_foreground
+    img_original: img_original.data
+    img_foreground: img_foreground.data
 
     BoxLayout:
         spacing: '2dp'
 
-        Image:
+        NumpyImage:
             id: img_original
 
-        Image:
+        NumpyImage:
             id: img_foreground
 
     BoxLayout:
