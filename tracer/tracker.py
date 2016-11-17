@@ -137,7 +137,7 @@ class Tracker:
         background_filename = os.path.join(
             self.output_folder, "background.bmp")
         try:
-            logger.info("Looking for background model")
+            logger.info("Loading background model '%s'", background_filename)
             self.background_model = imageio.imread(background_filename)
         except OSError:
             logger.info("Background model not found. Generating new...")
