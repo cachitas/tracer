@@ -148,6 +148,7 @@ class Tracker:
             logger.info("Background model found '%s'", background_filename)
 
         self.count_blobs_per_frame()
+        self.segment_flies()
         self.estimate_thresholds()
 
         self.video.close()

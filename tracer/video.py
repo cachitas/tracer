@@ -13,8 +13,6 @@ class Video:
         self.reader = imageio.get_reader(filepath, format='FFMPEG', mode='I')
         self.metadata = self.reader.get_meta_data()
 
-        self.background_model = None
-
     @property
     def fps(self):
         """Returns the frame rate as a float"""
