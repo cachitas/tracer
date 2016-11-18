@@ -5,10 +5,8 @@ import yaml
 import imageio
 import numpy as np
 import pandas as pd
-import pylab as pl
 
 import cv2
-import ocvu
 
 from .video import Video
 from . import tools
@@ -50,7 +48,11 @@ class Tracker:
         result_filepath = os.path.join(self.output_folder, "blob_count.h5")
         try:
             s = pd.read_hdf(result_filepath)
-        except OSError:
+        except OSError as e:
+            logger.error(e)
+            s = pd.Series(0, index=range(self.video.nframes), name='n')
+        except ValueError as e:
+            logger.error(e)
             s = pd.Series(0, index=range(self.video.nframes), name='n')
         else:
             return

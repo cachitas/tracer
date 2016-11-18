@@ -16,22 +16,6 @@ formatter = logging.Formatter('%(name)-18s: %(levelname)-8s %(message)s')
 console.setFormatter(formatter)
 logging.getLogger().addHandler(console)
 
-# formatter = logging.Formatter(
-#     "%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
-# logger = logging.getLogger(__name__)
-
-# logger.setLevel(logging.NOTSET)
-
-# file_handle = logging.FileHandler("tracer.log")
-# file_handle.setFormatter(formatter)
-# file_handle.setLevel('DEBUG')
-# logger.addHandler(file_handle)
-
-# console_handler = logging.StreamHandler(sys.stdout)
-# console_handler.setFormatter(formatter)
-# console_handler.setLevel('INFO')
-# logger.addHandler(console_handler)
-
 
 # TODO add runtime arguments to override the default configuration
 # parser = argparse.ArgumentParser(description='Tracer: Drosophila tracker')
