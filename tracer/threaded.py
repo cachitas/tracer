@@ -1,3 +1,10 @@
+"""
+My first attempt at using asyncio.
+
+However this is not the same as parallelization...
+This is useful when we need to wait for IO.
+"""
+
 import asyncio
 from collections import deque
 import logging
