@@ -93,8 +93,7 @@ def process_video_chunk(filename, chunk):
     logger.info("Processing video chunk [%4d, %4d]", chunk[0], chunk[-1])
     with imageio.get_reader(filename, format='FFMPEG') as reader:
         for i in chunk:
-            image = get_image(reader, i)
-            time.sleep(5)
+            get_image(reader, i)
 
 
 def main():
@@ -149,45 +148,6 @@ def main():
         results = pool.starmap(process_video_chunk, tasks)
 
     print(results)
-
-    # processes = [
-    #     mp.Process(target=process_video_chunk, args=(args.filename, chunk))
-    #     for chunk in first_chunks
-    # ]
-
-    # for p in processes:
-    #     p.start()
-
-    # for p in processes:
-    #     p.join()
-
-
-
-
-
-    # q = mp.Queue()
-    # read_process_1 = mp.Process(target=read, args=(args.filename, chunks[0], q))
-    # read_process_2 = mp.Process(target=read, args=(args.filename, chunks[1], q))
-
-    # read_process_1.start()
-    # read_process_2.start()
-
-    # read_process_1.join()
-    # read_process_2.join()
-
-    # frames_read = []
-    # while q.qsize() != 0:
-    #     frames_read.append(q.get())
-
-    # q.close()
-
-    # print(len(frames_read))
-
-    # # Generate background model
-    # with imageio.get_reader(args.filename, format='FFMPEG') as r:
-    #     for i in frames[::metadata['fps']]:
-    #         image = r.get_data(i)
-    #         print(i, image.shape)
 
     # TODO
 
