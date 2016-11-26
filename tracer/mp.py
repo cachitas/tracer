@@ -89,8 +89,11 @@ def compute_background_model(filename, step):
 
 
 def process_video_chunk(filename, chunk):
+    logger.info(chunk)
     logger.info("Processing video chunk [%4d, %4d]", chunk[0], chunk[-1])
-    time.sleep(2)
+    with imageio.get_reader(filename, format='FFMPEG') as reader:
+        for i in chunk:
+            get_image(reader, i)
 
 
 def main():
@@ -112,8 +115,8 @@ def main():
         logger.info("Output folder is '%s'", output_folder)
 
     logger.info("Reading video metadata...")
-    with imageio.get_reader(args.filename, format='FFMPEG') as r:
-        metadata = r.get_meta_data()
+    with imageio.get_reader(args.filename, format='FFMPEG') as reader:
+        metadata = reader.get_meta_data()
     for key, value in metadata.items():
         logger.info("\t%-14s %s", key, value)
 
@@ -136,13 +139,13 @@ def main():
     frames = np.arange(metadata['nframes'])
     chunks = split_in_chunks(frames, 200)  # TOFIX using small chunks to test
 
-    first_chunks = chunks[:20]  # TOFIX
+    first_chunks = chunks[:4]  # TOFIX
 
     tasks = [(args.filename, chunk) for chunk in first_chunks]
-    print(tasks)
+    # print(tasks)
 
     with mp.Pool(mp.cpu_count()) as pool:
-        results = [pool.apply_async(process_video_chunk, t) for t in tasks]
+        results = pool.starmap(process_video_chunk, tasks)
 
     print(results)
 
