@@ -36,7 +36,7 @@ def split_in_chunks(array, n=None):
     for i, chunk in enumerate(chunks):
         logger.info(
             "Chunk %d contains frames in the range [%4d, %4d]",
-            i+1, chunk[0], chunk[-1]
+            i + 1, chunk[0], chunk[-1]
         )
     return chunks
 
@@ -93,7 +93,8 @@ def process_video_chunk(filename, chunk):
     logger.info("Processing video chunk [%4d, %4d]", chunk[0], chunk[-1])
     with imageio.get_reader(filename, format='FFMPEG') as reader:
         for i in chunk:
-            get_image(reader, i)
+            image = get_image(reader, i)
+            time.sleep(5)
 
 
 def main():
