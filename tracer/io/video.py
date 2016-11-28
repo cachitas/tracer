@@ -25,7 +25,41 @@ def read(reader, index):
     return image
 
 
+class Video:
+
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.reader = get_reader(self.filepath)
+
+    def read(self, index):
+        logger.debug("Reading frame %d", index)
+        image = self.reader.get_data(index)
+        image = image[:, :, 1]
+        image.meta.index = index
+        return image
+
+
 # FIXME all of it!
+
+
+if __name__ == '__main__':
+    logging.basicConfig(level=logging.DEBUG)
+
+    video = Video('sample_videos/single.avi')
+
+    with video.reader as reader:
+        print(reader.read(0))
+
+    # img = video.get(10)
+    # print(img.meta.index, img.shape)
+
+    # chunk = np.arange(20, 22)
+    # for img in video.iter_chunk(chunk):
+    #     print(img.meta.index, img.shape)
+
+
+
+
 
 
 # class Video:
@@ -111,17 +145,3 @@ def read(reader, index):
 #     #     for index in chunk:
 #     #         yield self._read(index)
 #     #     self.__close()
-
-
-if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
-
-    video = Video('sample_videos/single.avi')
-    print(video)
-
-    img = video.get(10)
-    print(img.meta.index, img.shape)
-
-    # chunk = np.arange(20, 22)
-    # for img in video.iter_chunk(chunk):
-    #     print(img.meta.index, img.shape)
