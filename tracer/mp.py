@@ -4,8 +4,10 @@ import multiprocessing as mp
 import os
 import time
 
+import cv2
 import imageio
 import numpy as np
+import pandas as pd
 
 from . import tools
 
@@ -43,6 +45,8 @@ def split_in_chunks(array, n=None):
 
 def compute_background_model(filename, step):
     """Compute the background model of a video."""
+
+    # TODO need to externally control the thresholds used for MSE
 
     logger.info("Computing the background model")
 
@@ -88,18 +92,36 @@ def compute_background_model(filename, step):
     return background_model
 
 
-def process_video_chunk(filename, chunk):
-    logger.info(chunk)
-    logger.info("Processing video chunk [%4d, %4d]", chunk[0], chunk[-1])
+def segment_blobs(filename, chunk, background, n, min_area):
+    logger.info("Segmenting blobs in chunk [%5d, %5d]", chunk[0], chunk[-1])
+    cols = ['c%d_%s' % (i, feat) for i in range(n) for feat in 'xywha']
+    df = pd.DataFrame(0, index=chunk, columns=['n'] + cols)
     with imageio.get_reader(filename, format='FFMPEG') as reader:
-        for i in chunk:
-            get_image(reader, i)
+        for index in chunk:
+            image = get_image(reader, index)
+            fg = image - background
+            _, fg_mask = cv2.threshold(fg, 50, 255, cv2.THRESH_BINARY)
+            fg_mask = tools.denoise(fg_mask, 7)
+            contours = tools.find_biggest_contours(fg_mask, n, min_area)
+            df.loc[index, 'n'] = len(contours)
+            for i, c in enumerate(contours):
+                x, y, w, h = c.bounding_box
+                df.loc[index, 'c%d_x' % i] = x
+                df.loc[index, 'c%d_y' % i] = y
+                df.loc[index, 'c%d_w' % i] = w
+                df.loc[index, 'c%d_h' % i] = h
+                df.loc[index, 'c%d_a' % i] = c.area
+    return df
 
 
 def main():
     parser = argparse.ArgumentParser(description='Background')
     parser.add_argument('filename', type=str,
                         help='video file path')
+    parser.add_argument('nflies', type=int,
+                        help='number of flies in roi')
+    parser.add_argument('-a', '--area', type=int, default=500,
+                        help='minimum area for a valid blob (px)')
     args = parser.parse_args()
 
     logger.info("Video located in '%s'", args.filename)
@@ -137,17 +159,31 @@ def main():
         logger.info("Background model found '%s'", background_filename)
 
     frames = np.arange(metadata['nframes'])
-    chunks = split_in_chunks(frames, 200)  # TOFIX using small chunks to test
 
-    first_chunks = chunks[:4]  # TOFIX
-
-    tasks = [(args.filename, chunk) for chunk in first_chunks]
+    # chunks = split_in_chunks(frames, 200)  # TOFIX using small chunks to test
+    # first_chunks = chunks[:4]  # TOFIX
+    # tasks = [(args.filename, chunk) for chunk in first_chunks]
     # print(tasks)
 
-    with mp.Pool(mp.cpu_count()) as pool:
-        results = pool.starmap(process_video_chunk, tasks)
+    # All frames
+    tasks = [
+        (args.filename, chunk, background_model, args.nflies, args.area)
+        for chunk in split_in_chunks(frames)
+    ]
 
-    print(results)
+    # First and last frames
+    # tasks = [(args.filename, frames[:16], background_model, args.nflies, args.area)]
+    # tasks += [(args.filename, frames[-16:], background_model, args.nflies, args.area)]
+
+    processes = min(len(tasks), mp.cpu_count())
+    logger.info("Spawning %d processes", processes)
+    with mp.Pool(processes) as pool:
+        blobs = pool.starmap(segment_blobs, tasks)
+    blobs = pd.concat(blobs)
+
+    print(blobs)
+
+    blobs.to_hdf('blobs.h5', key='blobs')
 
     # TODO
 

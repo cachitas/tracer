@@ -1,35 +1,37 @@
-BoxLayout:
-    orientation: 'vertical'
+NumpyImage
 
-    index: slider.value
-    img_original: img_original.data
-    img_foreground: img_foreground.data
+# BoxLayout:
+#     orientation: 'vertical'
 
-    BoxLayout:
-        spacing: '2dp'
+#     index: slider.value
+#     img_original: img_original.data
+#     img_foreground: img_foreground.data
 
-        NumpyImage:
-            id: img_original
+#     BoxLayout:
+#         spacing: '2dp'
 
-        NumpyImage:
-            id: img_foreground
+#         NumpyImage:
+#             id: img_original
 
-    BoxLayout:
-        spacing: '6dp'
-        size_hint_y: None
+#         NumpyImage:
+#             id: img_foreground
 
-        Button:
-            size_hint_x: None
-            width: '200dp'
-            text: "Show Background Model"
+#     BoxLayout:
+#         spacing: '6dp'
+#         size_hint_y: None
 
-        Slider
-            id: slider
-            step: 1
-            on_value: app.set_image(int(self.value))
+#         Button:
+#             size_hint_x: None
+#             width: '200dp'
+#             text: "Show Background Model"
 
-        Label:
-            size_hint_x: None
-            width: '140dp'
-            text: str(root.index)
+#         Slider
+#             id: slider
+#             step: 1
+#             on_value: app.set_image(int(self.value))
+
+#         Label:
+#             size_hint_x: None
+#             width: '140dp'
+#             text: str(root.index)
 

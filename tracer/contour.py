@@ -17,6 +17,9 @@ class Contour(object):
         self.contour = contour
         self.size = len(contour)
 
+    def __str__(self):
+        return "XYA=({}, {}, {})".format(*self.position, self.area)
+
     @property
     def position(self):
         """Top left coordinate of the contour bounding box."""
