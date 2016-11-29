@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 import logging
 
 import imageio
@@ -6,40 +7,61 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 
-def get_reader(uri):
-    """Custom wrapper around `imageio.get_reader()` using FFMPEG"""
-    return imageio.get_reader(uri, format='FFMPEG', mode='I')
-
-
-def get_metadata(uri):
-    logger.info("Reading video metadata")
-    with get_reader(uri) as reader:
-        metadata = reader.get_meta_data()
-
-
-def read(reader, index):
-    logger.debug("Reading frame %d", index)
-    image = reader.get_data(index)
-    image = image[:, :, 1]
-    image.meta.index = index
-    return image
-
-
 class Video:
 
     def __init__(self, filepath):
         self.filepath = filepath
-        self.reader = get_reader(self.filepath)
 
-    def read(self, index):
+        with self.get_reader() as reader:
+            logger.info("Reading video metadata")
+            self.metadata = reader.get_meta_data()
+
+    @property
+    def fps(self):
+        """Returns the frame rate as a float"""
+        return self.metadata['fps']
+
+    @property
+    def nframes(self):
+        """Returns the number of frames as an int"""
+        return self.metadata['nframes']
+
+    @property
+    def size(self):
+        """Returns a tuple with (width, height)."""
+        return self.metadata['size']
+
+    @property
+    def frames(self):
+        """Returns an iterator with all frames."""
+        return np.arange(self.nframes)
+
+    @contextmanager
+    def get_reader(self):
+        """Custom wrapper around `imageio.get_reader()` using FFMPEG"""
+        logger.debug("Opening imageio.Reader")
+        yield imageio.get_reader(self.filepath, format='FFMPEG', mode='I')
+        logger.debug("Closing imageio.Reader")
+
+    def _get(self, reader, index):
+        """Provides a common interface to all reading operations.
+        Assuming the video is in grayscale, only one color channel is returned.
+        The frame number is stored in the `.meta.index` attribute (imageio).
+        """
         logger.debug("Reading frame %d", index)
-        image = self.reader.get_data(index)
+        image = reader.get_data(index)
         image = image[:, :, 1]
         image.meta.index = index
         return image
 
+    def get(self, index):
+        with self.get_reader() as reader:
+            return self._get(reader, index)
 
-# FIXME all of it!
+    def get_chunk(self, chunk):
+        with self.get_reader() as reader:
+            for index in chunk:
+                yield self._get(reader, index)
 
 
 if __name__ == '__main__':
@@ -47,16 +69,11 @@ if __name__ == '__main__':
 
     video = Video('sample_videos/single.avi')
 
-    with video.reader as reader:
-        print(reader.read(0))
+    img = video.get(10)
 
-    # img = video.get(10)
-    # print(img.meta.index, img.shape)
-
-    # chunk = np.arange(20, 22)
-    # for img in video.iter_chunk(chunk):
-    #     print(img.meta.index, img.shape)
-
+    chunk = np.arange(10)
+    for img in video.get_chunk(chunk):
+        pass
 
 
 
