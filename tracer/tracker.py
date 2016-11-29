@@ -10,7 +10,6 @@ import cv2
 
 from .io.video import Video
 from .io.output import Output
-from . import background
 from . import tools
 
 
@@ -92,8 +91,81 @@ class Tracker:
 
         self.output = Output(self.video_filepath)
 
-        if self.output.background_model is None:
-            background_model = background.compute(self.video)
-            self.output.save_image(background_model, 'background_model')
+        if self.output.background is None:
+            background = compute_background_model(self.video)
+            self.output.save_image(background, 'background')
+
+        if self.output.blobs is None:
+            # blobs = self.segment_blobs()
+            # FIXME
+            pass
 
         logger.info("Finished")
+
+
+def compute_background_model(video, step=None):
+    """Compute the background model of a video."""
+    # TODO need to externally control the thresholds used for MSE
+
+    logger.info("Computing the background model")
+
+    step = step or video.fps
+    background_model = None
+    distinct_frames = []
+    bg = None
+    bg_updated = None
+
+    logger.debug("Reading frames in steps of %d frames", step)
+
+    index = 0
+    distinct_frames.append(video.get(index))
+    bg = distinct_frames[-1]
+
+    while background_model is None and index < step * 100:
+        index += step
+        previous_image = distinct_frames[-1]
+        image = video.get(index)
+        mse = tools.mean_squared_error(previous_image, image)
+        logger.debug("MSE=%.1f", mse)
+        if mse > 50:  # TOFIX
+            distinct_frames.append(image)
+        else:
+            continue
+        bg_updated = np.median(
+            np.dstack(distinct_frames), axis=2).astype(np.uint8)
+        bg_mse = tools.mean_squared_error(bg, bg_updated)
+        logger.debug(
+            "Updating the background model using %d frames (MSE: %.1f)",
+            len(distinct_frames), bg_mse
+        )
+        if bg_mse < 0.5:  # TOFIX
+            background_model = bg_updated
+        else:
+            bg = bg_updated
+
+    return background_model
+
+
+def segment_blobs(image, background, n, min_area):
+    """Segment blobs in an image."""
+
+    frame_number = image.meta.index
+
+    logger.debug("Segmenting blobs in frame %d", frame_number)
+    cols = ['c%d_%s' % (i, feat) for i in range(n) for feat in 'xywha']
+    s = pd.DataFrame(0, index=['n'] + cols, name=frame_number)
+
+    fg = image - background
+    _, fg_mask = cv2.threshold(fg, 50, 255, cv2.THRESH_BINARY)
+    fg_mask = tools.denoise(fg_mask, 7)
+    contours = tools.find_biggest_contours(fg_mask, n, min_area)
+    s.loc['n'] = len(contours)
+    for i, c in enumerate(contours):
+        x, y, w, h = c.bounding_box
+        s.loc['%d_x' % i] = x
+        s.loc['%d_y' % i] = y
+        s.loc['%d_w' % i] = w
+        s.loc['%d_h' % i] = h
+        s.loc['%d_a' % i] = c.area
+
+    return s

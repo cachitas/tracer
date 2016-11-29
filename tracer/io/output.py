@@ -2,13 +2,15 @@ import logging
 import os
 
 import imageio
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
 
 class Output:
 
-    IMG_EXT = 'BMP'
+    IMG_EXT = 'bmp'
+    HDF_EXT = 'h5'
 
     def __init__(self, video_filepath=None, path=None):
 
@@ -28,14 +30,24 @@ class Output:
 
         logger.info("Output folder set to '%s'", self.path)
 
-        # Load existing data
-        self.background_model = self.load_image('background_model')
+        self.background = self.load_image('background')
+        self.blobs = self.load_hdf('blobs')
 
     def __repr__(self):
         return "Output(path={})".format(repr(self.path))
 
     def _build_filepath(self, filename, extension):
-        return os.path.join(self.path, filename + '.' + extension.lower())
+        return os.path.join(self.path, filename + '.' + extension)
+
+    def load_hdf(self, filename):
+        filepath = self._build_filepath(filename, self.HDF_EXT)
+        try:
+            logger.info("Loading HDF5 '%s'", filepath)
+            df = pd.read_hdf(filepath)
+        except FileNotFoundError as e:
+            logger.error(e)
+            df = None
+        return df
 
     def load_image(self, filename):
         filepath = self._build_filepath(filename, self.IMG_EXT)
@@ -47,9 +59,17 @@ class Output:
             image = None
         return image
 
+    def save_hdf(self, df, filename='df', key='/'):
+        if self.__getattribute__(filename) is None:
+            logger.debug("Setting output attribute '%s'", filename)
+            self.__setattr__(filename, df)
+        filepath = self._build_filepath(filename, self.HDF_EXT)
+        logger.info("Saving DataFrame as HDF5 to %s", repr(filepath))
+        df.to_hdf(filepath, key)
+
     def save_image(self, image, filename='image', format=None):
         if self.__getattribute__(filename) is None:
-            logger.info("Setting output '%s'", filename)
+            logger.debug("Setting output attribute '%s'", filename)
             self.__setattr__(filename, image)
         filepath = self._build_filepath(filename, (format or self.IMG_EXT))
         logger.info("Saving image %s", repr(filepath))
