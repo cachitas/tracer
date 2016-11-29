@@ -24,7 +24,6 @@ class Output:
 
         logger.info("Output folder set to '%s'", self.path)
 
-
     def __repr__(self):
         return "Output(path={})".format(repr(self.path))
 
@@ -38,8 +37,7 @@ class Output:
         try:
             os.rmdir(self.path)
         except OSError as e:
-            logger.error(e)
-            raise
+            logger.exception(e)
         else:
             logger.info("Output folder %s removed", self.path)
 
