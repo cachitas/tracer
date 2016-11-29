@@ -1,10 +1,14 @@
 import logging
 import os
 
+import imageio
+
 logger = logging.getLogger(__name__)
 
 
 class Output:
+
+    IMG_EXT = 'BMP'
 
     def __init__(self, video_filepath=None, path=None):
 
@@ -24,14 +28,32 @@ class Output:
 
         logger.info("Output folder set to '%s'", self.path)
 
+        # Load existing data
+        self.background_model = self.load_image('background_model')
+
     def __repr__(self):
         return "Output(path={})".format(repr(self.path))
 
-    def load_image(name, format='BMP'):
-        raise NotImplementedError
+    def _build_filepath(self, filename, extension):
+        return os.path.join(self.path, filename + '.' + extension.lower())
 
-    def save_image(image):
-        raise NotImplementedError
+    def load_image(self, filename):
+        filepath = self._build_filepath(filename, self.IMG_EXT)
+        try:
+            logger.info("Loading image '%s'", filepath)
+            image = imageio.imread(filepath)
+        except OSError as e:
+            logger.error(e)
+            image = None
+        return image
+
+    def save_image(self, image, filename='image', format=None):
+        if self.__getattribute__(filename) is None:
+            logger.info("Setting output '%s'", filename)
+            self.__setattr__(filename, image)
+        filepath = self._build_filepath(filename, (format or self.IMG_EXT))
+        logger.info("Saving image %s", repr(filepath))
+        imageio.imwrite(filepath, image, format=(format or self.IMG_EXT))
 
     def clear(self):
         try:

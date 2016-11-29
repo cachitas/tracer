@@ -26,12 +26,12 @@ class Video:
 
     @property
     def fps(self):
-        """Returns the frame rate as a float"""
-        return self.metadata['fps']
+        """Returns the frame rate as an integer."""
+        return int(self.metadata['fps'])
 
     @property
     def nframes(self):
-        """Returns the number of frames as an int"""
+        """Returns the number of frames as an integer."""
         return self.metadata['nframes']
 
     @property
@@ -82,3 +82,8 @@ if __name__ == '__main__':
     chunk = np.arange(10)
     for img in video.get_chunk(chunk):
         pass
+
+    index = 0
+    while index < 10:
+        video.get(index)
+        index += 1
