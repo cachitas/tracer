@@ -16,6 +16,14 @@ class Video:
             logger.info("Reading video metadata")
             self.metadata = reader.get_meta_data()
 
+    def __str__(self):
+        return "Video('{}', size={s}, nframes={n}, fps={fps})".format(
+            self.filepath,
+            s=self.size,
+            n=self.nframes,
+            fps=self.fps
+        )
+
     @property
     def fps(self):
         """Returns the frame rate as a float"""
