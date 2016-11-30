@@ -1,4 +1,5 @@
 import logging
+import multiprocessing as mp
 import os
 import yaml
 
@@ -89,16 +90,34 @@ class Tracker:
 
         self.video = Video(self.video_filepath)
 
-        self.output = Output(self.video_filepath)
+        output = Output(self.video_filepath)
 
-        if self.output.background is None:
+        if output.background is None:
             background = compute_background_model(self.video)
-            self.output.save_image(background, 'background')
+            output.save_image(background, 'background')
 
-        if self.output.blobs is None:
-            # blobs = self.segment_blobs()
-            # FIXME
-            pass
+        if output.blobs is None:
+            tasks = [
+                (
+                    self.video,
+                    chunk,
+                    segment_blobs,
+                    dict(
+                        background=output.background,
+                        n=self.number_of_flies,
+                        min_area=self.area
+                    )
+                )
+                for chunk in tools.split_in_chunks(self.video.frames, 8)
+            ]
+
+            processes = min(len(tasks), mp.cpu_count())
+            logger.info("Spawning %d processes", processes)
+            with mp.Pool(processes) as pool:
+                blobs = pool.starmap(process, tasks)
+            blobs = pd.concat(blobs)
+
+            output.save_hdf(blobs, 'blobs')
 
         logger.info("Finished")
 
@@ -146,13 +165,22 @@ def compute_background_model(video, step=None):
     return background_model
 
 
+def process(video, frames, func, func_args):
+    logger.info("Processing frames [%5d, %5d]", frames[0], frames[-1])
+    df = pd.DataFrame()
+    for image in video.get_chunk(frames):
+        s = func(image, **func_args)
+        df = df.append(s.to_frame().T)
+    return df
+
+
 def segment_blobs(image, background, n, min_area):
     """Segment blobs in an image."""
 
     frame_number = image.meta.index
 
     logger.debug("Segmenting blobs in frame %d", frame_number)
-    cols = ['%d_%s' % (i, feat) for i in range(n) for feat in 'xywh']
+    cols = ['c%d_%s' % (i, feat) for i in range(n) for feat in 'xywh']
     s = pd.Series(0, index=['n'] + cols, name=frame_number)
 
     fg = image - background
@@ -162,9 +190,9 @@ def segment_blobs(image, background, n, min_area):
     s.loc['n'] = len(contours)
     for i, c in enumerate(contours):
         x, y, w, h = c.bounding_box
-        s.loc['%d_x' % i] = x
-        s.loc['%d_y' % i] = y
-        s.loc['%d_w' % i] = w
-        s.loc['%d_h' % i] = h
+        s.loc['c%d_x' % i] = x
+        s.loc['c%d_y' % i] = y
+        s.loc['c%d_w' % i] = w
+        s.loc['c%d_h' % i] = h
 
     return s

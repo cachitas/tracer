@@ -59,13 +59,13 @@ class Output:
             image = None
         return image
 
-    def save_hdf(self, df, filename='df', key='/'):
+    def save_hdf(self, df, filename='df'):
         if self.__getattribute__(filename) is None:
             logger.debug("Setting output attribute '%s'", filename)
             self.__setattr__(filename, df)
         filepath = self._build_filepath(filename, self.HDF_EXT)
         logger.info("Saving DataFrame as HDF to %s", repr(filepath))
-        df.to_hdf(filepath, key)
+        df.to_hdf(filepath, '/'+filename)
 
     def save_image(self, image, filename='image', format=None):
         if self.__getattribute__(filename) is None:

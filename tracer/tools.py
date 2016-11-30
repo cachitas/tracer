@@ -30,8 +30,8 @@ def show(image, title=""):
         orientation='horizontal',
         ticks=np.linspace(0, 255, 2)
     )
-    axs[0].set_xticks(np.linspace(0, image.shape[1], 2))
-    axs[0].set_yticks(np.linspace(0, image.shape[0], 2))
+    axs[0].set_xticks(np.linspace(0, image.shape[1]-1, 2))
+    axs[0].set_yticks(np.linspace(0, image.shape[0]-1, 2))
 
     hist = cv2.calcHist([image], [0], None, [256], [0, 256])
     axs[1].set_xlabel("pixel value")
@@ -86,3 +86,15 @@ def find_biggest_contours(image, n=1, min_area=None, **kwargs):
 def kernel(size):
     """Returns a circular kernel."""
     return cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (size, size))
+
+
+def split_in_chunks(array, n):
+    """Splits an array into `n` chunks."""
+    logger.info("Splitting video frames into %d chunks", n)
+    chunks = np.array_split(array, n)
+    for i, chunk in enumerate(chunks):
+        logger.info(
+            "Chunk %d contains frames in the range [%4d, %4d]",
+            i + 1, chunk[0], chunk[-1]
+        )
+    return chunks
