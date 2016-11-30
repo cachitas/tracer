@@ -42,7 +42,7 @@ class Output:
     def load_hdf(self, filename):
         filepath = self._build_filepath(filename, self.HDF_EXT)
         try:
-            logger.info("Loading HDF5 '%s'", filepath)
+            logger.info("Loading HDF '%s'", filepath)
             df = pd.read_hdf(filepath)
         except FileNotFoundError as e:
             logger.error(e)
@@ -64,7 +64,7 @@ class Output:
             logger.debug("Setting output attribute '%s'", filename)
             self.__setattr__(filename, df)
         filepath = self._build_filepath(filename, self.HDF_EXT)
-        logger.info("Saving DataFrame as HDF5 to %s", repr(filepath))
+        logger.info("Saving DataFrame as HDF to %s", repr(filepath))
         df.to_hdf(filepath, key)
 
     def save_image(self, image, filename='image', format=None):
