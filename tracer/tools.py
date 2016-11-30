@@ -22,10 +22,15 @@ def show(image, title=""):
     """Uses matplotlib to show an image and its histogram."""
     fig, axs = plt.subplots(ncols=2)
     plt.title(title)
-    im = axs[0].imshow(image, cmap='viridis')
-    plt.colorbar(im, ax=axs[0], orientation='horizontal', ticks=np.linspace(0, 255, 2))
+    img_ax = axs[0].imshow(image, cmap='viridis')
+    plt.colorbar(
+        img_ax,
+        ax=axs[0],
+        orientation='horizontal',
+        ticks=np.linspace(0, 255, 2)
+    )
     hist = np.bincount(image.ravel(), minlength=256)
-    axs[1].plot(np.arange(len(hist))+.5, hist)
+    axs[1].plot(np.arange(len(hist)) + .5, hist)
     axs[1].set_xlim(0, 255)
     plt.tight_layout()
     plt.show()

@@ -152,11 +152,11 @@ def segment_blobs(image, background, n, min_area):
     frame_number = image.meta.index
 
     logger.debug("Segmenting blobs in frame %d", frame_number)
-    cols = ['c%d_%s' % (i, feat) for i in range(n) for feat in 'xywha']
-    s = pd.DataFrame(0, index=['n'] + cols, name=frame_number)
+    cols = ['%d_%s' % (i, feat) for i in range(n) for feat in 'xywh']
+    s = pd.Series(0, index=['n'] + cols, name=frame_number)
 
     fg = image - background
-    _, fg_mask = cv2.threshold(fg, 50, 255, cv2.THRESH_BINARY)
+    _, fg_mask = cv2.threshold(fg, 10, 255, cv2.THRESH_BINARY)
     fg_mask = tools.denoise(fg_mask, 7)
     contours = tools.find_biggest_contours(fg_mask, n, min_area)
     s.loc['n'] = len(contours)
@@ -166,6 +166,5 @@ def segment_blobs(image, background, n, min_area):
         s.loc['%d_y' % i] = y
         s.loc['%d_w' % i] = w
         s.loc['%d_h' % i] = h
-        s.loc['%d_a' % i] = c.area
 
     return s
