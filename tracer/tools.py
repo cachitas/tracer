@@ -23,15 +23,23 @@ def show(image, title=""):
     fig, axs = plt.subplots(ncols=2)
     plt.title(title)
     img_ax = axs[0].imshow(image, cmap='viridis')
+    img_ax.set_clim([0, 255])
     plt.colorbar(
         img_ax,
         ax=axs[0],
         orientation='horizontal',
         ticks=np.linspace(0, 255, 2)
     )
-    hist = np.bincount(image.ravel(), minlength=256)
-    axs[1].plot(np.arange(len(hist)) + .5, hist)
-    axs[1].set_xlim(0, 255)
+    axs[0].set_xticks(np.linspace(0, image.shape[1], 2))
+    axs[0].set_yticks(np.linspace(0, image.shape[0], 2))
+
+    hist = cv2.calcHist([image], [0], None, [256], [0, 256])
+    axs[1].set_xlabel("pixel value")
+    axs[1].set_ylabel("# of pixels")
+    axs[1].plot(hist)
+    axs[1].set_xlim([0, 255])
+    axs[1].set_xticks([0, 255])
+
     plt.tight_layout()
     plt.show()
 
